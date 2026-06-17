@@ -66,9 +66,10 @@
     analysisInProgress = true;
 
     // Retrieve settings (defaults if not configured yet)
-    chrome.storage.local.get(['apiUrl', 'userId'], (settings) => {
+    chrome.storage.local.get(['apiUrl', 'userId', 'userApiKey'], (settings) => {
       const apiUrl = settings.apiUrl || 'http://localhost:3000';
       const userId = settings.userId || 'usr_' + Math.random().toString(36).substring(2, 11);
+      const userApiKey = settings.userApiKey || '';
 
       console.log(`[EchoFilter] Requesting analysis via background proxy for: "${searchQuery}"`, batchToProcess);
       
@@ -84,6 +85,7 @@
           userId,
           searchQuery,
           videoIds: batchToProcess,
+          userApiKey,
         }
       }, (response) => {
         if (chrome.runtime.lastError || !response || !response.success) {

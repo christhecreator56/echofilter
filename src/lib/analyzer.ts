@@ -98,14 +98,18 @@ interface LLMChunkGrade {
 export async function analyzeTranscript(
   videoId: string,
   searchQuery: string,
-  chunks: TranscriptChunk[]
-): Promise<VideoDensityReport> {
+  chunks: TranscriptChunk[],
+  userApiKey?: string
+): Promise<{ report: VideoDensityReport; tokensUsed: number }> {
   if (chunks.length === 0) {
     return {
-      videoId,
-      metrics: { infoDensityScore: 0, fillerRatio: 1, confidenceScore: 0 },
-      keyTimestamps: [],
-      verdict: 'CLICKBAIT_WASTE',
+      report: {
+        videoId,
+        metrics: { infoDensityScore: 0, fillerRatio: 1, confidenceScore: 0 },
+        keyTimestamps: [],
+        verdict: 'CLICKBAIT_WASTE',
+      },
+      tokensUsed: 0,
     };
   }
 
@@ -132,10 +136,13 @@ export async function analyzeTranscript(
   // If no chunks match, classify as clickbait waste
   if (matchedChunks.length === 0) {
     return {
-      videoId,
-      metrics: { infoDensityScore: 0.0, fillerRatio: 1.0, confidenceScore: 0.5 },
-      keyTimestamps: [],
-      verdict: 'CLICKBAIT_WASTE',
+      report: {
+        videoId,
+        metrics: { infoDensityScore: 0.0, fillerRatio: 1.0, confidenceScore: 0.5 },
+        keyTimestamps: [],
+        verdict: 'CLICKBAIT_WASTE',
+      },
+      tokensUsed: 0,
     };
   }
 
@@ -144,9 +151,12 @@ export async function analyzeTranscript(
     .sort((a, b) => b.similarity - a.similarity)
     .slice(0, 2);
 
-  // LLM Grading (Stage 2) using Groq API
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey || apiKey === 'placeholder-key') {
+  // Determine which API key to use
+  const targetApiKey = (userApiKey && userApiKey !== 'placeholder-key')
+    ? userApiKey
+    : process.env.GROQ_API_KEY;
+
+  if (!targetApiKey || targetApiKey === 'placeholder-key') {
     // If no API key is set, return a mock response based on vector similarity
     const avgSim = sortedMatches.reduce((sum, m) => sum + m.similarity, 0) / sortedMatches.length;
     const infoDensityScore = Math.min(1, Math.max(0, (avgSim - 0.5) * 2));
@@ -154,24 +164,30 @@ export async function analyzeTranscript(
     const verdict = infoDensityScore >= 0.70 ? 'HIGH_DENSITY' : infoDensityScore >= 0.35 ? 'SURFACE_LEVEL' : 'CLICKBAIT_WASTE';
     
     return {
-      videoId,
-      metrics: {
-        infoDensityScore: Math.round(infoDensityScore * 100) / 100,
-        fillerRatio: Math.round(fillerRatio * 100) / 100,
-        confidenceScore: Math.round(avgSim * 100) / 100,
+      report: {
+        videoId,
+        metrics: {
+          infoDensityScore: Math.round(infoDensityScore * 100) / 100,
+          fillerRatio: Math.round(fillerRatio * 100) / 100,
+          confidenceScore: Math.round(avgSim * 100) / 100,
+        },
+        keyTimestamps: sortedMatches.map(m => ({
+          timeInSeconds: m.chunk.startTime,
+          relevanceReason: `Mock justification: highly relevant content matched query (sim: ${m.similarity.toFixed(2)})`,
+        })),
+        verdict,
       },
-      keyTimestamps: sortedMatches.map(m => ({
-        timeInSeconds: m.chunk.startTime,
-        relevanceReason: `Mock justification: highly relevant content matched query (sim: ${m.similarity.toFixed(2)})`,
-      })),
-      verdict,
+      tokensUsed: 0,
     };
   }
+
+  // Initialize Groq client dynamically for this run
+  const activeGroq = new Groq({ apiKey: targetApiKey });
 
   // Helper function to call Groq with retry on 429 rate limits
   const callGroqWithRetry = async (params: any, retries = 3, delay = 2000): Promise<any> => {
     try {
-      return await groq.chat.completions.create(params);
+      return await activeGroq.chat.completions.create(params);
     } catch (err: any) {
       if (err?.status === 429 && retries > 0) {
         console.warn(`[Groq Rate Limit] 429 hit. Retrying in ${delay}ms... (${retries} attempts remaining)`);
@@ -210,6 +226,7 @@ JSON Schema:
 
       const content = chatCompletion.choices[0]?.message?.content || '{}';
       const parsed: LLMChunkGrade = JSON.parse(content);
+      const tokens = chatCompletion.usage?.total_tokens || 0;
       
       return {
         chunk: match.chunk,
@@ -217,6 +234,7 @@ JSON Schema:
         technicalScore: typeof parsed.technicalScore === 'number' ? parsed.technicalScore : 0,
         fillerDetected: typeof parsed.fillerDetected === 'number' ? parsed.fillerDetected : 1,
         justification: parsed.justification || 'Analyzed segment.',
+        tokensUsed: tokens,
       };
     } catch (err) {
       console.error(`Error grading chunk ${match.chunk.id} with Groq:`, err);
@@ -227,6 +245,7 @@ JSON Schema:
         technicalScore: 0.5,
         fillerDetected: 0.5,
         justification: 'Error parsing LLM response.',
+        tokensUsed: 0,
       };
     }
   });
@@ -238,6 +257,7 @@ JSON Schema:
   const avgTechnicalScore = gradedChunks.reduce((sum, g) => sum + g.technicalScore, 0) / totalChunks;
   const avgFillerRatio = gradedChunks.reduce((sum, g) => sum + g.fillerDetected, 0) / totalChunks;
   const avgConfidence = gradedChunks.reduce((sum, g) => sum + g.similarity, 0) / totalChunks;
+  const totalTokensUsed = gradedChunks.reduce((sum, g) => sum + g.tokensUsed, 0);
 
   // Key timestamps: filter high technical score chunks, sort chronologically
   const keyTimestamps = gradedChunks
@@ -257,13 +277,16 @@ JSON Schema:
   }
 
   return {
-    videoId,
-    metrics: {
-      infoDensityScore: Math.round(avgTechnicalScore * 100) / 100,
-      fillerRatio: Math.round(avgFillerRatio * 100) / 100,
-      confidenceScore: Math.round(avgConfidence * 100) / 100,
+    report: {
+      videoId,
+      metrics: {
+        infoDensityScore: Math.round(avgTechnicalScore * 100) / 100,
+        fillerRatio: Math.round(avgFillerRatio * 100) / 100,
+        confidenceScore: Math.round(avgConfidence * 100) / 100,
+      },
+      keyTimestamps,
+      verdict,
     },
-    keyTimestamps,
-    verdict,
+    tokensUsed: totalTokensUsed,
   };
 }

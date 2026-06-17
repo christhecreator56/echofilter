@@ -21,10 +21,11 @@ export async function OPTIONS() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { userId, searchQuery, videoIds } = body as {
+    const { userId, searchQuery, videoIds, userApiKey } = body as {
       userId: string;
       searchQuery: string;
       videoIds: string[];
+      userApiKey?: string;
     };
 
     if (!searchQuery || !videoIds || !Array.isArray(videoIds)) {
@@ -95,7 +96,9 @@ export async function POST(req: NextRequest) {
           console.log(`Cache miss. Processing video: ${videoId}`);
           const segments = await fetchYouTubeTranscript(videoId);
           const chunks = chunkTranscript(segments, videoId);
-          report = await analyzeTranscript(videoId, searchQuery, chunks);
+          const result = await analyzeTranscript(videoId, searchQuery, chunks, userApiKey);
+          report = result.report;
+          const tokensUsed = result.tokensUsed;
 
           // Save to Supabase DB
           try {
@@ -117,6 +120,22 @@ export async function POST(req: NextRequest) {
             await redis.set(cacheKey, JSON.stringify(report), { ex: 86400 * 7 });
           } catch (redisSetErr) {
             console.warn('Failed to set Redis cache:', redisSetErr);
+          }
+
+          // Save usage log
+          try {
+            const usingCustomKey = !!(userApiKey && userApiKey !== 'placeholder-key');
+            const creditsConsumed = usingCustomKey ? 0.0 : 0.05;
+            await supabase.from('usage_logs').insert({
+              user_id: userId || 'anonymous',
+              video_id: videoId,
+              search_query: normalizedQuery,
+              tokens_used: tokensUsed,
+              credits_consumed: creditsConsumed,
+              using_custom_key: usingCustomKey,
+            });
+          } catch (logErr) {
+            console.error(`Failed to log usage to Supabase for ${videoId}:`, logErr);
           }
         } catch (err) {
           console.error(`Pipeline failure for video ${videoId}:`, err);
