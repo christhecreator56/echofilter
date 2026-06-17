@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 320px;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #09090b;
+      color: #fafafa;
+      margin: 0;
+    }
+    h1 {
+      font-size: 1.25rem;
+      margin-top: 0;
+      margin-bottom: 4px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      background: linear-gradient(135deg, #60a5fa, #3b82f6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .tagline {
+      font-size: 0.75rem;
+      color: #a1a1aa;
+      margin-bottom: 20px;
+    }
+    .field {
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #d4d4d8;
+    }
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px 12px;
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 8px;
+      color: #fafafa;
+      font-size: 0.85rem;
+      transition: all 0.2s ease;
+    }
+    input:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #2563eb;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+    button:hover {
+      background: #1d4ed8;
+    }
+    button:active {
+      transform: scale(0.98);
+    }
+    .success-msg {
+      display: none;
+      font-size: 0.78rem;
+      color: #34d399;
+      text-align: center;
+      margin-top: 12px;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  <h1>EchoFilter Configuration</h1>
+  <div class="tagline">AI YouTube Transcript Info-Density Ranking</div>
+  
+  <div class="field">
+    <label for="apiUrl">Backend API Server</label>
+    <input type="text" id="apiUrl" placeholder="http://localhost:3000">
+  </div>
+  
+  <div class="field">
+    <label for="userId">User Identity ID</label>
+    <input type="text" id="userId" placeholder="usr_xxxxxxxxx">
+  </div>
+  
+  <button id="saveBtn">Save Settings</button>
+  <div id="successMsg" class="success-msg">✔️ Settings saved successfully!</div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

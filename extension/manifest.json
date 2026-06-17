@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "EchoFilter: AI Transcript Density Engine",
+  "version": "1.0.0",
+  "description": "Ranks YouTube developer videos by technical utility and filters clickbait fluff.",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "*://*.youtube.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.youtube.com/results*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "styles.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}
