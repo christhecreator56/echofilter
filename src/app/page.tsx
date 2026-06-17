@@ -1,6 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import LoginScreen from '@/components/LoginScreen';
+import DashboardSidebar from '@/components/DashboardSidebar';
+import OverviewTab from '@/components/OverviewTab';
+import CredentialsTab from '@/components/CredentialsTab';
 
 interface TopUser {
   userId: string;
@@ -173,53 +177,12 @@ CREATE INDEX IF NOT EXISTS idx_usage_logs_user_id ON usage_logs(user_id);`;
 
   if (!isAuthenticated) {
     return (
-      <div className="relative min-h-screen flex items-center justify-center bg-[#07070a] overflow-hidden text-slate-100 px-4">
-        {/* Ambient Gradient Glows */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/15 rounded-full blur-[100px] pointer-events-none"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-[120px] pointer-events-none"></div>
-
-        <div className="w-full max-w-md backdrop-blur-xl bg-white/[0.02] border border-white/[0.08] p-8 rounded-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.5)]">
-          <div className="text-center mb-8">
-            <div className="inline-flex p-3 rounded-xl bg-white/[0.04] border border-white/10 mb-4 shadow-inner">
-              <svg className="w-8 h-8 text-purple-400 animate-pulse" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />
-              </svg>
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight text-white">EchoFilter Admin</h1>
-            <p className="text-sm text-slate-400 mt-2">Enter secret key to access dashboard metrics</p>
-          </div>
-
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div>
-              <label htmlFor="secret" className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">Admin Secret</label>
-              <input
-                id="secret"
-                type="password"
-                placeholder="Enter secret (default: admin123)"
-                value={secretInput}
-                onChange={(e) => setSecretInput(e.target.value)}
-                className="w-full px-4 py-3 bg-white/[0.04] border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all placeholder:text-slate-600 text-white text-center font-semibold tracking-widest"
-              />
-            </div>
-
-            {loginError && (
-              <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-300 text-xs rounded-lg flex items-center gap-2">
-                <svg className="w-4 h-4 flex-shrink-0 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                <span>{loginError}</span>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              className="w-full py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold rounded-xl transition-all duration-300 hover:shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:brightness-110 active:scale-[0.98] cursor-pointer"
-            >
-              Sign In
-            </button>
-          </form>
-        </div>
-      </div>
+      <LoginScreen
+        secretInput={secretInput}
+        setSecretInput={setSecretInput}
+        loginError={loginError}
+        handleLogin={handleLogin}
+      />
     );
   }
 
@@ -230,85 +193,15 @@ CREATE INDEX IF NOT EXISTS idx_usage_logs_user_id ON usage_logs(user_id);`;
       <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-purple-600/5 rounded-full blur-[140px] pointer-events-none"></div>
       <div className="absolute bottom-10 left-10 w-[500px] h-[500px] bg-blue-600/5 rounded-full blur-[120px] pointer-events-none"></div>
 
-      {/* 1. LEFT SIDEBAR NAVIGATION */}
-      <aside className="w-full md:w-64 flex-shrink-0 backdrop-blur-xl bg-[#09090e]/80 border-b md:border-b-0 md:border-r border-white/[0.06] flex flex-col z-30 sticky top-0 md:h-screen">
-        
-        {/* Brand Header */}
-        <div className="p-6 border-b border-white/[0.06] flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-purple-600 to-blue-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-11.314l.707.707m11.314 11.314l.707-.707M12 5a7 7 0 100 14 7 7 0 000-14z" />
-              </svg>
-            </div>
-            <div>
-              <h2 className="font-bold text-sm tracking-tight text-white">EchoFilter</h2>
-              <p className="text-[10px] text-slate-500 font-semibold tracking-wider uppercase">Admin Panel</p>
-            </div>
-          </div>
+      {/* LEFT SIDEBAR NAVIGATION */}
+      <DashboardSidebar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        stats={stats}
+        handleLogout={handleLogout}
+      />
 
-          <span className="md:hidden text-xs bg-purple-500/10 border border-purple-500/20 text-purple-400 px-2 py-0.5 rounded-full">
-            v1.1
-          </span>
-        </div>
-
-        {/* Navigation items */}
-        <nav className="flex-1 p-4 space-y-1">
-          <button
-            onClick={() => setActiveTab('overview')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
-              activeTab === 'overview'
-                ? 'bg-white/[0.04] text-white border border-white/10 shadow-[0_0_15px_rgba(255,255,255,0.02)]'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.02] border border-transparent'
-            }`}
-          >
-            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
-            </svg>
-            Overview
-          </button>
-          
-          <button
-            onClick={() => setActiveTab('settings')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
-              activeTab === 'settings'
-                ? 'bg-white/[0.04] text-white border border-white/10 shadow-[0_0_15px_rgba(255,255,255,0.02)]'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.02] border border-transparent'
-            }`}
-          >
-            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.43l-1.003.828c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.43l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 010-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            Credentials
-          </button>
-        </nav>
-
-        {/* Sidebar Status Info footer */}
-        <div className="p-4 border-t border-white/[0.06] space-y-4">
-          {stats && (
-            <div className="flex flex-col gap-1.5 p-3 rounded-xl bg-white/[0.02] border border-white/5 text-[11px] text-slate-400">
-              <span className="text-slate-500 uppercase tracking-wide font-bold text-[9px]">Server API Integration</span>
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className={`w-2 h-2 rounded-full ${stats.groqKeyConfigured ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]' : 'bg-rose-500 shadow-[0_0_8px_#f43f5e]'}`}></span>
-                Groq Key: <span className="font-semibold text-slate-200">{stats.groqKeyStatus}</span>
-              </div>
-            </div>
-          )}
-
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs bg-white/[0.04] border border-white/10 hover:bg-white/10 text-slate-300 rounded-lg transition-all active:scale-[0.97] cursor-pointer font-medium"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
-            </svg>
-            Disconnect Admin
-          </button>
-        </div>
-      </aside>
-
-      {/* 2. MAIN CONTENT AREA (BENTO GRID LAYOUT) */}
+      {/* MAIN CONTENT AREA */}
       <div className="flex-1 flex flex-col min-w-0 md:h-screen overflow-y-auto">
         
         {/* Top Header Panel */}
@@ -340,45 +233,6 @@ CREATE INDEX IF NOT EXISTS idx_usage_logs_user_id ON usage_logs(user_id);`;
         {/* Scrollable Dashboard Body */}
         <div className="p-6 md:p-10 flex-1 space-y-8">
           
-          {/* Supabase migration alert */}
-          {stats && stats.tableExists === false && (
-            <div className="p-6 backdrop-blur-xl bg-amber-500/[0.03] border border-amber-500/20 text-amber-100 rounded-2xl shadow-lg">
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-amber-500/15 border border-amber-500/30 text-amber-400 rounded-xl">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                </div>
-                <div className="flex-1 space-y-3">
-                  <h3 className="text-lg font-bold text-white">Supabase Schema Migration Required</h3>
-                  <p className="text-sm text-slate-300">
-                    The dashboard is connected, but the <code className="px-1.5 py-0.5 rounded bg-white/[0.07] text-amber-300 font-mono text-xs">usage_logs</code> table is missing.
-                    Run the SQL commands below in your <a href="https://supabase.com/" target="_blank" rel="noopener noreferrer" className="underline text-purple-400 hover:text-purple-300">Supabase SQL Editor</a>, then refresh.
-                  </p>
-                  <div className="relative mt-4 bg-[#0a0a0f] border border-white/10 rounded-xl p-4 font-mono text-xs text-slate-300 overflow-x-auto">
-                    <pre>{sqlSchemaText}</pre>
-                    <button
-                      onClick={copySqlToClipboard}
-                      className="absolute top-3 right-3 p-1.5 rounded-md bg-white/[0.05] border border-white/10 hover:bg-white/10 text-xs text-slate-300 flex items-center gap-1.5 transition-all cursor-pointer"
-                    >
-                      {copying ? (
-                        <>
-                          <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                          <span className="text-emerald-400">Copied</span>
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
-                          <span>Copy SQL</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
           {statsError && (
             <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-300 text-sm rounded-xl flex items-center justify-between">
               <span className="flex items-center gap-2">
@@ -398,306 +252,26 @@ CREATE INDEX IF NOT EXISTS idx_usage_logs_user_id ON usage_logs(user_id);`;
             </div>
           ) : stats ? (
             activeTab === 'overview' ? (
-              
-              /* BENTO GRID OVERVIEW TAB */
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-auto">
-                
-                {/* 1. Bento Item: KPI Card Users */}
-                <div className="backdrop-blur-md bg-white/[0.02] border border-white/[0.06] p-6 rounded-2xl relative overflow-hidden group flex flex-col justify-between h-40">
-                  <div className="absolute top-0 left-0 w-full h-[1.5px] bg-gradient-to-r from-purple-500/0 via-purple-500/40 to-purple-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Consumers</p>
-                      <h4 className="text-3xl font-extrabold text-white mt-1.5 tracking-tight">{stats.totalUsers}</h4>
-                    </div>
-                    <div className="p-2 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400">
-                      <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.109A11.386 11.386 0 0110.089 20c-1.602 0-3.136-.33-4.533-.924a9.005 9.005 0 01-1.247-.696 4.125 4.125 0 017.523-2.476A9.03 9.03 0 0015 19.128zm0 0c0-1.113-.285-2.16-.786-3.07M15 7.5a3 3 0 11-6 0 3 3 0 016 0zm6 2.25a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
-                      </svg>
-                    </div>
-                  </div>
-                  <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    Active Identity Registry
-                  </span>
-                </div>
-
-                {/* 2. Bento Item: KPI Card Total Audits */}
-                <div className="backdrop-blur-md bg-white/[0.02] border border-white/[0.06] p-6 rounded-2xl relative overflow-hidden group flex flex-col justify-between h-40">
-                  <div className="absolute top-0 left-0 w-full h-[1.5px] bg-gradient-to-r from-blue-500/0 via-blue-500/40 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Audits</p>
-                      <h4 className="text-3xl font-extrabold text-white mt-1.5 tracking-tight">{stats.totalCalls}</h4>
-                    </div>
-                    <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
-                      <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                      </svg>
-                    </div>
-                  </div>
-                  <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
-                    Transcripts Deciphered
-                  </span>
-                </div>
-
-                {/* 3. Bento Item: KPI Card Credits Consumed */}
-                <div className="backdrop-blur-md bg-white/[0.02] border border-white/[0.06] p-6 rounded-2xl relative overflow-hidden group flex flex-col justify-between h-40">
-                  <div className="absolute top-0 left-0 w-full h-[1.5px] bg-gradient-to-r from-pink-500/0 via-pink-500/40 to-pink-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Estimated Cost</p>
-                      <h4 className="text-3xl font-extrabold text-white mt-1.5 tracking-tight">${stats.totalCreditsUsed.toFixed(2)}</h4>
-                    </div>
-                    <div className="p-2 rounded-xl bg-pink-500/10 border border-pink-500/20 text-pink-400">
-                      <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.214-.11a3.65 3.65 0 00.183-.37c.347-.836.347-1.765 0-2.602a3.673 3.673 0 00-.285-.542l-.112-.17a3.002 3.002 0 00-3.327-.584M21 18H3m14-9.3c0-2.6-2.1-4.7-4.7-4.7M10 3v4c0 1.1-.9 2-2 2H4" />
-                      </svg>
-                    </div>
-                  </div>
-                  <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
-                    Est Server Charge Log
-                  </span>
-                </div>
-
-                {/* 4. Bento Item: Wide Daily Chart (col-span-2) */}
-                <div className="md:col-span-2 backdrop-blur-md bg-white/[0.02] border border-white/[0.06] p-6 rounded-2xl relative overflow-hidden group">
-                  <div className="flex justify-between items-center mb-6">
-                    <div>
-                      <h3 className="text-sm font-bold text-white">Daily Credits vs Queries</h3>
-                      <p className="text-[11px] text-slate-400">Telemetry logs mapped per UTC calendar date</p>
-                    </div>
-                    <div className="flex gap-3 text-[10px] font-semibold uppercase tracking-wider">
-                      <span className="flex items-center gap-1.5 text-slate-400">
-                        <span className="w-2 h-2 rounded bg-purple-500 shadow-[0_0_6px_rgba(168,85,247,0.5)]"></span>
-                        Credits
-                      </span>
-                      <span className="flex items-center gap-1.5 text-slate-400">
-                        <span className="w-2 h-2 rounded bg-blue-500/20 border border-blue-500/50"></span>
-                        Calls
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="w-full h-56 bg-black/20 border border-white/5 rounded-xl p-4 flex flex-col justify-end">
-                    {stats.dailyStats && stats.dailyStats.length > 0 ? (
-                      <div className="w-full h-full flex flex-col justify-between">
-                        
-                        <div className="flex-1 flex items-end justify-around gap-3 px-2 border-b border-white/10 pb-2">
-                          {stats.dailyStats.map((d, i) => {
-                            const creditPct = (d.creditsUsed / maxCredits) * 100;
-                            const callsPct = (d.callsCount / maxCalls) * 100;
-
-                            return (
-                              <div key={i} className="flex-1 flex flex-col items-center group relative h-full justify-end max-w-[45px]">
-                                <div className="absolute bottom-full mb-2 bg-slate-900 border border-white/10 text-[9px] text-white px-2 py-1.5 rounded-lg shadow-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 flex flex-col gap-0.5 font-mono">
-                                  <span className="font-bold text-slate-300">{d.date}</span>
-                                  <span className="text-purple-400">Spend: ${d.creditsUsed.toFixed(2)}</span>
-                                  <span className="text-blue-400 font-medium">Audits: {d.callsCount}</span>
-                                </div>
-
-                                <div className="w-full flex items-end gap-1 h-full">
-                                  {/* Calls bar */}
-                                  <div
-                                    style={{ height: `${Math.max(callsPct, 4)}%` }}
-                                    className="flex-1 bg-blue-500/10 border border-blue-500/30 rounded-t-sm transition-all duration-300 group-hover:brightness-125"
-                                  ></div>
-                                  {/* Credits bar */}
-                                  <div
-                                    style={{ height: `${Math.max(creditPct, 4)}%` }}
-                                    className="flex-1 bg-gradient-to-t from-purple-600 to-purple-400 rounded-t-sm transition-all duration-300 group-hover:brightness-125 group-hover:shadow-[0_0_8px_rgba(168,85,247,0.4)]"
-                                  ></div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        <div className="flex justify-around gap-2 px-2 pt-2 text-[9px] text-slate-500 font-mono">
-                          {stats.dailyStats.map((d, i) => {
-                            const parts = d.date.split('-');
-                            return (
-                              <span key={i} className="flex-1 text-center truncate max-w-[45px]">
-                                {parts.length > 2 ? `${parts[1]}/${parts[2]}` : d.date}
-                              </span>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 text-xs">
-                        <svg className="w-7 h-7 text-slate-600 mb-2 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
-                        <span>No log telemetry found yet. Scan some YouTube videos to populate.</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* 5. Bento Item: Config Status & Quick Key (col-span-1) */}
-                <div className="backdrop-blur-md bg-gradient-to-br from-purple-900/10 to-blue-900/5 border border-white/[0.06] p-6 rounded-2xl relative overflow-hidden flex flex-col justify-between group">
-                  <div>
-                    <h3 className="text-sm font-bold text-white mb-1">Server Key Info</h3>
-                    <p className="text-[11px] text-slate-400 leading-normal">Operational status of the server fallback key credentials.</p>
-                  </div>
-                  <div className="my-4 space-y-3">
-                    <div className="flex items-center justify-between text-xs py-1 border-b border-white/[0.04]">
-                      <span className="text-slate-400">Current Key:</span>
-                      <span className="font-semibold text-slate-200">{stats.groqKeyStatus}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs py-1 border-b border-white/[0.04]">
-                      <span className="text-slate-400">Admin Secret:</span>
-                      <span className="font-semibold text-purple-400">Configured</span>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setActiveTab('settings')}
-                    className="w-full py-2 bg-white/[0.04] border border-white/10 hover:bg-white/10 rounded-xl text-xs font-semibold transition-all text-slate-300 flex items-center justify-center gap-1 cursor-pointer"
-                  >
-                    Manage Settings
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                    </svg>
-                  </button>
-                </div>
-
-                {/* 6. Bento Item: Leaderboard (col-span-3 - full width at bottom) */}
-                <div className="md:col-span-3 backdrop-blur-md bg-white/[0.01] border border-white/[0.05] p-6 rounded-2xl relative overflow-hidden group">
-                  <div className="flex justify-between items-center mb-4">
-                    <div>
-                      <h3 className="text-sm font-bold text-white">Top Active Client Registries</h3>
-                      <p className="text-[11px] text-slate-400">Identities logging the highest aggregate credit queries</p>
-                    </div>
-                    <span className="text-[10px] bg-white/[0.04] border border-white/10 px-2 py-0.5 rounded-full text-slate-400 font-mono">
-                      Top 10 Nodes
-                    </span>
-                  </div>
-
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse text-xs text-slate-300">
-                      <thead>
-                        <tr className="border-b border-white/[0.06] text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                          <th className="py-2.5 px-4">User Identity ID</th>
-                          <th className="py-2.5 px-4 text-center">Requests Sent</th>
-                          <th className="py-2.5 px-4 text-right">Aggregate Costs</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {stats.topUsers && stats.topUsers.length > 0 ? (
-                          stats.topUsers.map((user, i) => (
-                            <tr key={i} className="border-b border-white/[0.03] hover:bg-white/[0.01] transition-colors">
-                              <td className="py-3 px-4 font-mono text-slate-300">{user.userId}</td>
-                              <td className="py-3 px-4 text-center font-medium text-slate-200">{user.callsCount}</td>
-                              <td className="py-3 px-4 text-right text-purple-400 font-bold">${user.creditsUsed.toFixed(2)}</td>
-                            </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td colSpan={3} className="py-8 px-4 text-center text-slate-500">
-                              No client metrics logged. Auditing events via Chrome extension will generate rows.
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-              </div>
+              <OverviewTab
+                stats={stats}
+                maxCredits={maxCredits}
+                maxCalls={maxCalls}
+                sqlSchemaText={sqlSchemaText}
+                copying={copying}
+                copySqlToClipboard={copySqlToClipboard}
+                setActiveTab={setActiveTab}
+              />
             ) : (
-              
-              /* CREDENTIALS/SETTINGS TAB */
-              <div className="max-w-2xl space-y-6">
-                
-                {/* Form Card */}
-                <div className="backdrop-blur-md bg-white/[0.02] border border-white/[0.06] p-6 rounded-2xl relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-[2px] h-full bg-gradient-to-b from-purple-600 to-blue-600"></div>
-                  
-                  <div className="mb-6">
-                    <h3 className="text-base font-bold text-white">Server Groq API Configuration</h3>
-                    <p className="text-xs text-slate-400">Update fallback credentials stored on server environment. This changes process variables immediately.</p>
-                  </div>
-
-                  <form onSubmit={handleUpdateConfig} className="space-y-5">
-                    <div>
-                      <label htmlFor="apiKey" className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Groq Key String</label>
-                      <div className="relative">
-                        <input
-                          id="apiKey"
-                          type={showGroqKey ? 'text' : 'password'}
-                          placeholder="gsk_..."
-                          value={groqKeyInput}
-                          onChange={(e) => setGroqKeyInput(e.target.value)}
-                          className="w-full pl-4 pr-10 py-3 bg-white/[0.03] border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 text-xs text-white font-mono placeholder:text-slate-700"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowGroqKey(!showGroqKey)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors cursor-pointer"
-                        >
-                          {showGroqKey ? (
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.815 7.815L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
-                            </svg>
-                          ) : (
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.43 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-
-                    {configSuccess && (
-                      <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs rounded-lg flex items-center gap-2">
-                        <svg className="w-4 h-4 flex-shrink-0 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        <span>{configSuccess}</span>
-                      </div>
-                    )}
-
-                    {configError && (
-                      <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-300 text-xs rounded-lg flex items-center gap-2">
-                        <svg className="w-4 h-4 flex-shrink-0 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                        <span>{configError}</span>
-                      </div>
-                    )}
-
-                    <button
-                      type="submit"
-                      disabled={configLoading}
-                      className="w-full py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:brightness-110 active:scale-[0.98] disabled:opacity-50 text-white font-semibold text-xs rounded-xl transition-all duration-300 cursor-pointer shadow-[0_0_15px_rgba(147,51,234,0.15)] flex items-center justify-center gap-2"
-                    >
-                      {configLoading ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
-                          <span>Modifying Server Config...</span>
-                        </>
-                      ) : (
-                        <span>Save API Configuration</span>
-                      )}
-                    </button>
-                  </form>
-                </div>
-
-                {/* Security warning card */}
-                <div className="backdrop-blur-md bg-white/[0.01] border border-white/[0.04] p-5 rounded-2xl space-y-3">
-                  <h4 className="text-xs font-bold text-slate-300 flex items-center gap-1.5 uppercase tracking-wider">
-                    <svg className="w-4 h-4 text-pink-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-                    </svg>
-                    Credentials Advisory
-                  </h4>
-                  <p className="text-[11px] text-slate-400 leading-relaxed">
-                    Saving key configurations directly modifies the <code className="text-pink-400">.env.local</code> file in your workspace directory. Ensure that you do not commit raw keys to public repositories.
-                  </p>
-                  <p className="text-[11px] text-slate-400 leading-relaxed">
-                    To modify the dashboard access password itself, configure the <code className="text-slate-200 font-semibold font-mono bg-white/5 px-1 py-0.5 rounded">ADMIN_SECRET</code> key in your server environment configuration variables.
-                  </p>
-                </div>
-
-              </div>
+              <CredentialsTab
+                groqKeyInput={groqKeyInput}
+                setGroqKeyInput={setGroqKeyInput}
+                showGroqKey={showGroqKey}
+                setShowGroqKey={setShowGroqKey}
+                configLoading={configLoading}
+                configSuccess={configSuccess}
+                configError={configError}
+                handleUpdateConfig={handleUpdateConfig}
+              />
             )
           ) : (
             <div className="text-center py-20 text-slate-500 text-sm">
