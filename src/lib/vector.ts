@@ -41,6 +41,32 @@ export async function generateEmbedding(text: string): Promise<number[]> {
 }
 
 /**
+ * Generates vector embeddings for a batch of texts in a single ONNX inference run.
+ * This is significantly faster than generating them sequentially.
+ */
+export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
+  if (texts.length === 0) return [];
+  try {
+    const extractor = await getExtractor();
+    const output = await extractor(texts, { pooling: 'mean', normalize: true });
+    
+    // Flat Float32Array containing embeddings back-to-back
+    const flatData = Array.from(output.data) as number[];
+    const dimensions = 384;
+    
+    const embeddings: number[][] = [];
+    for (let i = 0; i < texts.length; i++) {
+      embeddings.push(flatData.slice(i * dimensions, (i + 1) * dimensions));
+    }
+    return embeddings;
+  } catch (error) {
+    console.error('Error generating batch embeddings:', error);
+    throw new Error(`Failed to generate batch vector embeddings: ${(error as Error).message}`);
+  }
+}
+
+
+/**
  * Calculates dot product of two vectors
  */
 export function dotProduct(a: number[], b: number[]): number {

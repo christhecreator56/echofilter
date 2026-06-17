@@ -1,5 +1,5 @@
 import { RawTranscriptSegment } from './scraper';
-import { generateEmbedding, cosineSimilarity } from './vector';
+import { generateEmbedding, generateEmbeddings, cosineSimilarity } from './vector';
 import { Groq } from 'groq-sdk';
 
 export interface TranscriptChunk {
@@ -112,10 +112,15 @@ export async function analyzeTranscript(
   // Generate embedding for search query
   const queryEmbedding = await generateEmbedding(searchQuery);
 
+  // Generate embeddings for all transcript chunks in a single batched run (highly efficient)
+  const chunkTexts = chunks.map(c => c.text);
+  const chunkEmbeddings = await generateEmbeddings(chunkTexts);
+
   // Filter chunks using vector alignment (Stage 1)
   const matchedChunks: { chunk: TranscriptChunk; similarity: number }[] = [];
-  for (const chunk of chunks) {
-    const chunkEmbedding = await generateEmbedding(chunk.text);
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i];
+    const chunkEmbedding = chunkEmbeddings[i];
     chunk.embedding = chunkEmbedding;
     const similarity = cosineSimilarity(queryEmbedding, chunkEmbedding);
     
