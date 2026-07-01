@@ -186,9 +186,10 @@
         </div>
       `;
     } else {
+      const reasonText = report.verdictReason || 'No technical highlights extracted.';
       timestampsHTML = `
         <div class="echofilter-timestamps-section">
-          <span class="no-moments">No technical highlights extracted.</span>
+          <span class="no-moments">${reasonText}</span>
         </div>
       `;
     }

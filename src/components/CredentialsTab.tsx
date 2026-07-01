@@ -11,6 +11,8 @@ interface CredentialsTabProps {
   configSuccess: string | null;
   configError: string | null;
   handleUpdateConfig: (e: React.FormEvent) => void;
+  developerMode: boolean;
+  setDeveloperMode: (val: boolean) => void;
 }
 
 export default function CredentialsTab({
@@ -22,13 +24,15 @@ export default function CredentialsTab({
   configSuccess,
   configError,
   handleUpdateConfig,
+  developerMode,
+  setDeveloperMode,
 }: CredentialsTabProps) {
   return (
     <div className="max-w-2xl space-y-6 animate-fade-in">
       
       {/* Form Card */}
       <div className="backdrop-blur-md bg-white/[0.02] border border-white/[0.06] p-6 rounded-2xl relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-[2px] h-full bg-gradient-to-b from-purple-600 to-blue-600"></div>
+        <div className="absolute top-0 left-0 w-[2px] h-full bg-gradient-to-b from-cyan-500 to-blue-600"></div>
         
         <div className="mb-6">
           <h3 className="text-base font-bold text-white">Server Groq API Configuration</h3>
@@ -45,7 +49,7 @@ export default function CredentialsTab({
                 placeholder="gsk_..."
                 value={groqKeyInput}
                 onChange={(e) => setGroqKeyInput(e.target.value)}
-                className="w-full pl-4 pr-10 py-3 bg-white/[0.03] border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 text-xs text-white font-mono placeholder:text-slate-700"
+                className="w-full pl-4 pr-10 py-3 bg-white/[0.03] border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 text-xs text-white font-mono placeholder:text-slate-700"
               />
               <button
                 type="button"
@@ -83,7 +87,7 @@ export default function CredentialsTab({
           <button
             type="submit"
             disabled={configLoading}
-            className="w-full py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:brightness-110 active:scale-[0.98] disabled:opacity-50 text-white font-semibold text-xs rounded-xl transition-all duration-300 cursor-pointer shadow-[0_0_15px_rgba(147,51,234,0.15)] flex items-center justify-center gap-2"
+            className="w-full py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:brightness-110 active:scale-[0.98] disabled:opacity-50 text-white font-semibold text-xs rounded-xl transition-all duration-300 cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.15)] flex items-center justify-center gap-2"
           >
             {configLoading ? (
               <>
@@ -100,17 +104,42 @@ export default function CredentialsTab({
       {/* Security warning card */}
       <div className="backdrop-blur-md bg-white/[0.01] border border-white/[0.04] p-5 rounded-2xl space-y-3">
         <h4 className="text-xs font-bold text-slate-300 flex items-center gap-1.5 uppercase tracking-wider">
-          <svg className="w-4 h-4 text-pink-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-cyan-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.57-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
           </svg>
           Credentials Advisory
         </h4>
         <p className="text-[11px] text-slate-400 leading-relaxed">
-          Saving key configurations directly modifies the <code className="text-pink-400">.env.local</code> file in your workspace directory. Ensure that you do not commit raw keys to public repositories.
+          Saving key configurations directly modifies the <code className="text-cyan-400">.env.local</code> file in your workspace directory. Ensure that you do not commit raw keys to public repositories.
         </p>
         <p className="text-[11px] text-slate-400 leading-relaxed">
           To modify the dashboard access password itself, configure the <code className="text-slate-200 font-semibold font-mono bg-white/5 px-1 py-0.5 rounded">ADMIN_SECRET</code> key in your server environment configuration variables.
         </p>
+      </div>
+
+      {/* Developer Settings Card */}
+      <div className="backdrop-blur-md bg-white/[0.02] border border-white/[0.06] p-6 rounded-2xl relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-[2px] h-full bg-gradient-to-b from-cyan-500 to-emerald-500"></div>
+        
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-bold text-white font-sans">Developer Mode Options</h3>
+            <p className="text-xs text-slate-400 mt-1">Enable access to running database telemetry logs and raw log download tools.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setDeveloperMode(!developerMode)}
+            className={`w-12 h-6 flex items-center rounded-full p-1 cursor-pointer transition-all duration-300 ${
+              developerMode ? 'bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.4)]' : 'bg-white/10'
+            }`}
+          >
+            <div
+              className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-all duration-300 ${
+                developerMode ? 'translate-x-6' : 'translate-x-0'
+              }`}
+            ></div>
+          </button>
+        </div>
       </div>
 
     </div>

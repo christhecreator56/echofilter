@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import LoginScreen from '@/components/LoginScreen';
 import DashboardSidebar from '@/components/DashboardSidebar';
 import OverviewTab from '@/components/OverviewTab';
@@ -29,15 +29,31 @@ interface DashboardStats {
   dailyStats: DailyStat[];
 }
 
+interface UsageLog {
+  id: number;
+  userId: string;
+  videoId: string;
+  searchQuery: string;
+  tokensUsed: number;
+  creditsConsumed: number;
+  usingCustomKey: boolean;
+  createdAt: string;
+}
+
 export default function AdminDashboard() {
   const [adminSecret, setAdminSecret] = useState<string>('');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [secretInput, setSecretInput] = useState<string>('');
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [loginLoading, setLoginLoading] = useState<boolean>(false);
 
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [statsError, setStatsError] = useState<string | null>(null);
+
+  const [developerMode, setDeveloperMode] = useState<boolean>(false);
+  const [logsData, setLogsData] = useState<UsageLog[]>([]);
+  const [logsLoading, setLogsLoading] = useState<boolean>(false);
 
   const [groqKeyInput, setGroqKeyInput] = useState<string>('');
   const [configLoading, setConfigLoading] = useState<boolean>(false);
@@ -46,24 +62,8 @@ export default function AdminDashboard() {
   const [showGroqKey, setShowGroqKey] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'settings'>('overview');
 
-  // Sync token from sessionStorage on mount
-  useEffect(() => {
-    const savedSecret = sessionStorage.getItem('echofilter_admin_secret');
-    if (savedSecret) {
-      setAdminSecret(savedSecret);
-      setSecretInput(savedSecret);
-      setIsAuthenticated(true);
-    }
-  }, []);
-
-  // Fetch stats when authenticated
-  useEffect(() => {
-    if (isAuthenticated && adminSecret) {
-      fetchStats();
-    }
-  }, [isAuthenticated, adminSecret]);
-
-  const fetchStats = async () => {
+  // Memoized stats fetch function to satisfy dependency guidelines
+  const fetchStats = useCallback(async () => {
     setLoading(true);
     setStatsError(null);
     try {
@@ -85,23 +85,111 @@ export default function AdminDashboard() {
 
       const data = await res.json();
       setStats(data);
-    } catch (err: any) {
-      setStatsError(err.message || 'An error occurred.');
+    } catch (err: unknown) {
+      const errMessage = err instanceof Error ? err.message : 'An error occurred.';
+      setStatsError(errMessage);
     } finally {
       setLoading(false);
     }
-  };
+  }, [adminSecret]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const fetchLogs = useCallback(async () => {
+    setLogsLoading(true);
+    try {
+      const res = await fetch('/api/admin/logs', {
+        headers: {
+          'x-admin-secret': adminSecret,
+        },
+      });
+      if (!res.ok) {
+        throw new Error('Failed to fetch developer logs.');
+      }
+      const data = await res.json();
+      setLogsData(data);
+    } catch (err: unknown) {
+      console.error(err);
+    } finally {
+      setLogsLoading(false);
+    }
+  }, [adminSecret]);
+
+  const downloadLogs = useCallback(() => {
+    if (logsData.length === 0) return;
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(logsData, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href",     dataStr);
+    downloadAnchor.setAttribute("download", `echofilter_running_logs_${new Date().toISOString().split('T')[0]}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  }, [logsData]);
+
+  // Sync token from sessionStorage on mount
+  useEffect(() => {
+    const savedSecret = sessionStorage.getItem('echofilter_admin_secret');
+    if (savedSecret) {
+      setTimeout(() => {
+        setAdminSecret(savedSecret);
+        setSecretInput(savedSecret);
+        setIsAuthenticated(true);
+      }, 0);
+    }
+  }, []);
+
+  // Fetch stats when authenticated
+  useEffect(() => {
+    if (isAuthenticated && adminSecret && !stats) {
+      const timer = setTimeout(() => {
+        fetchStats();
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [isAuthenticated, adminSecret, stats, fetchStats]);
+
+  // Fetch developer logs when developer mode is active and we don't have them yet
+  useEffect(() => {
+    if (developerMode && isAuthenticated && adminSecret) {
+      const timer = setTimeout(() => {
+        fetchLogs();
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [developerMode, isAuthenticated, adminSecret, fetchLogs]);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!secretInput.trim()) {
       setLoginError('Secret key cannot be empty.');
       return;
     }
     setLoginError(null);
-    setAdminSecret(secretInput);
-    setIsAuthenticated(true);
-    sessionStorage.setItem('echofilter_admin_secret', secretInput);
+    setLoginLoading(true);
+    try {
+      const res = await fetch('/api/admin/stats', {
+        headers: {
+          'x-admin-secret': secretInput,
+        },
+      });
+
+      if (!res.ok) {
+        if (res.status === 401) {
+          throw new Error('Invalid secret key.');
+        }
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to authenticate.');
+      }
+
+      const data = await res.json();
+      setStats(data);
+      setAdminSecret(secretInput);
+      setIsAuthenticated(true);
+      sessionStorage.setItem('echofilter_admin_secret', secretInput);
+    } catch (err: unknown) {
+      const errMessage = err instanceof Error ? err.message : 'An error occurred during verification.';
+      setLoginError(errMessage);
+    } finally {
+      setLoginLoading(false);
+    }
   };
 
   const handleLogout = () => {
@@ -141,8 +229,9 @@ export default function AdminDashboard() {
       setConfigSuccess('Groq API Key updated successfully!');
       setGroqKeyInput('');
       fetchStats(); // Refresh stats to update indicators
-    } catch (err: any) {
-      setConfigError(err.message || 'An error occurred.');
+    } catch (err: unknown) {
+      const errMessage = err instanceof Error ? err.message : 'An error occurred.';
+      setConfigError(errMessage);
     } finally {
       setConfigLoading(false);
     }
@@ -159,7 +248,45 @@ export default function AdminDashboard() {
     using_custom_key BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
-CREATE INDEX IF NOT EXISTS idx_usage_logs_user_id ON usage_logs(user_id);`;
+CREATE INDEX IF NOT EXISTS idx_usage_logs_user_id ON usage_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_usage_logs_created_at ON usage_logs(created_at);
+
+-- RPC function to aggregate dashboard stats server-side
+CREATE OR REPLACE FUNCTION get_dashboard_stats()
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  result JSONB;
+BEGIN
+  SELECT jsonb_build_object(
+    'tableExists', true,
+    'totalUsers', COALESCE((SELECT count(DISTINCT user_id)::int FROM usage_logs), 0),
+    'totalCalls', COALESCE((SELECT count(*)::int FROM usage_logs), 0),
+    'totalCreditsUsed', COALESCE((SELECT round(sum(credits_consumed)::numeric, 2)::float FROM usage_logs), 0.0),
+    'topUsers', COALESCE((
+      SELECT jsonb_agg(t) FROM (
+        SELECT user_id AS "userId", count(*)::int AS "callsCount", round(sum(credits_consumed)::numeric, 2)::float AS "creditsUsed"
+        FROM usage_logs
+        GROUP BY user_id
+        ORDER BY "creditsUsed" DESC, "callsCount" DESC
+        LIMIT 10
+      ) t
+    ), '[]'::jsonb),
+    'dailyStats', COALESCE((
+      SELECT jsonb_agg(d) FROM (
+        SELECT created_at::date::text AS "date", count(*)::int AS "callsCount", round(sum(credits_consumed)::numeric, 2)::float AS "creditsUsed"
+        FROM usage_logs
+        GROUP BY created_at::date
+        ORDER BY "date" ASC
+      ) d
+    ), '[]'::jsonb)
+  ) INTO result;
+  
+  RETURN result;
+END;
+$$;`;
 
   const copySqlToClipboard = () => {
     navigator.clipboard.writeText(sqlSchemaText);
@@ -181,6 +308,7 @@ CREATE INDEX IF NOT EXISTS idx_usage_logs_user_id ON usage_logs(user_id);`;
         secretInput={secretInput}
         setSecretInput={setSecretInput}
         loginError={loginError}
+        loginLoading={loginLoading}
         handleLogin={handleLogin}
       />
     );
@@ -190,7 +318,7 @@ CREATE INDEX IF NOT EXISTS idx_usage_logs_user_id ON usage_logs(user_id);`;
     <div className="min-h-screen bg-[#07070a] text-slate-100 flex flex-col md:flex-row relative overflow-hidden font-sans">
       
       {/* Dynamic light sources in background */}
-      <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-purple-600/5 rounded-full blur-[140px] pointer-events-none"></div>
+      <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-cyan-600/5 rounded-full blur-[140px] pointer-events-none"></div>
       <div className="absolute bottom-10 left-10 w-[500px] h-[500px] bg-blue-600/5 rounded-full blur-[120px] pointer-events-none"></div>
 
       {/* LEFT SIDEBAR NAVIGATION */}
@@ -207,7 +335,7 @@ CREATE INDEX IF NOT EXISTS idx_usage_logs_user_id ON usage_logs(user_id);`;
         {/* Top Header Panel */}
         <header className="px-6 py-4 md:px-10 border-b border-white/[0.06] flex flex-col sm:flex-row justify-between sm:items-center gap-3 backdrop-blur-md bg-[#07070a]/40">
           <div>
-            <span className="text-[10px] text-purple-400 font-bold uppercase tracking-widest">Live Operations Control</span>
+            <span className="text-[10px] text-cyan-400 font-bold uppercase tracking-widest">Live Operations Control</span>
             <h1 className="text-xl font-bold tracking-tight text-white mt-0.5">
               {activeTab === 'overview' ? 'Telemetry Analytics Overview' : 'Server Keys & Configurations'}
             </h1>
@@ -245,9 +373,9 @@ CREATE INDEX IF NOT EXISTS idx_usage_logs_user_id ON usage_logs(user_id);`;
             </div>
           )}
 
-          {loading ? (
+          {loading && !stats ? (
             <div className="flex flex-col items-center justify-center py-32">
-              <div className="w-10 h-10 rounded-full border-4 border-purple-500/20 border-t-purple-500 animate-spin mb-4"></div>
+              <div className="w-10 h-10 rounded-full border-4 border-cyan-500/20 border-t-cyan-400 animate-spin mb-4"></div>
               <p className="text-sm text-slate-400 font-medium animate-pulse">Synchronizing database log cache...</p>
             </div>
           ) : stats ? (
@@ -260,6 +388,10 @@ CREATE INDEX IF NOT EXISTS idx_usage_logs_user_id ON usage_logs(user_id);`;
                 copying={copying}
                 copySqlToClipboard={copySqlToClipboard}
                 setActiveTab={setActiveTab}
+                developerMode={developerMode}
+                logsData={logsData}
+                logsLoading={logsLoading}
+                downloadLogs={downloadLogs}
               />
             ) : (
               <CredentialsTab
@@ -271,6 +403,8 @@ CREATE INDEX IF NOT EXISTS idx_usage_logs_user_id ON usage_logs(user_id);`;
                 configSuccess={configSuccess}
                 configError={configError}
                 handleUpdateConfig={handleUpdateConfig}
+                developerMode={developerMode}
+                setDeveloperMode={setDeveloperMode}
               />
             )
           ) : (
