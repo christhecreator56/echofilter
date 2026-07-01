@@ -19,9 +19,25 @@ export async function GET(req: NextRequest) {
   const groqKeyStatus = groqKeyConfigured ? 'Active' : 'Missing';
 
   try {
+    // 1. Try to fetch stats via RPC (highly optimized, server-side aggregation)
+    const { data: rpcData, error: rpcError } = await supabase.rpc('get_dashboard_stats');
+
+    if (!rpcError && rpcData) {
+      return Response.json({
+        ...rpcData,
+        groqKeyConfigured,
+        groqKeyStatus,
+      });
+    }
+
+    if (rpcError) {
+      console.warn('RPC get_dashboard_stats failed, falling back to optimized client-side processing:', rpcError.message);
+    }
+
+    // 2. Fallback: Query only necessary columns from the table to reduce payload size
     const { data: logs, error: logsError } = await supabase
       .from('usage_logs')
-      .select('*')
+      .select('user_id, credits_consumed, created_at')
       .order('created_at', { ascending: true });
 
     if (logsError) {
@@ -96,10 +112,11 @@ export async function GET(req: NextRequest) {
       topUsers,
       dailyStats,
     });
-  } catch (error: any) {
-    console.error('Error fetching admin stats:', error);
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('Error fetching admin stats:', err);
     return Response.json(
-      { error: error.message || 'Failed to fetch admin stats.' },
+      { error: err.message || 'Failed to fetch admin stats.' },
       { status: 500 }
     );
   }

@@ -60,7 +60,7 @@ export default function OverviewTab({
               <h3 className="text-lg font-bold text-white">Supabase Schema Migration Required</h3>
               <p className="text-sm text-slate-300">
                 The dashboard is connected, but the <code className="px-1.5 py-0.5 rounded bg-white/[0.07] text-amber-300 font-mono text-xs">usage_logs</code> table is missing.
-                Run the SQL commands below in your <a href="https://supabase.com/" target="_blank" rel="noopener noreferrer" className="underline text-purple-400 hover:text-purple-300">Supabase SQL Editor</a>, then refresh.
+                Run the SQL commands below in your <a href="https://supabase.com/" target="_blank" rel="noopener noreferrer" className="underline text-cyan-400 hover:text-cyan-300">Supabase SQL Editor</a>, then refresh.
               </p>
               <div className="relative mt-4 bg-[#0a0a0f] border border-white/10 rounded-xl p-4 font-mono text-xs text-slate-300 overflow-x-auto">
                 <pre>{sqlSchemaText}</pre>
@@ -91,13 +91,13 @@ export default function OverviewTab({
         
         {/* 1. Bento Item: KPI Card Users */}
         <div className="backdrop-blur-md bg-white/[0.02] border border-white/[0.06] p-6 rounded-2xl relative overflow-hidden group flex flex-col justify-between h-40">
-          <div className="absolute top-0 left-0 w-full h-[1.5px] bg-gradient-to-r from-purple-500/0 via-purple-500/40 to-purple-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+          <div className="absolute top-0 left-0 w-full h-[1.5px] bg-gradient-to-r from-cyan-500/0 via-cyan-500/40 to-cyan-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
           <div className="flex justify-between items-start">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Consumers</p>
               <h4 className="text-3xl font-extrabold text-white mt-1.5 tracking-tight">{stats.totalUsers}</h4>
             </div>
-            <div className="p-2 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400">
+            <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
               <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.109A11.386 11.386 0 0110.089 20c-1.602 0-3.136-.33-4.533-.924a9.005 9.005 0 01-1.247-.696 4.125 4.125 0 017.523-2.476A9.03 9.03 0 0015 19.128zm0 0c0-1.113-.285-2.16-.786-3.07M15 7.5a3 3 0 11-6 0 3 3 0 016 0zm6 2.25a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
               </svg>
@@ -130,13 +130,13 @@ export default function OverviewTab({
 
         {/* 3. Bento Item: KPI Card Credits Consumed */}
         <div className="backdrop-blur-md bg-white/[0.02] border border-white/[0.06] p-6 rounded-2xl relative overflow-hidden group flex flex-col justify-between h-40">
-          <div className="absolute top-0 left-0 w-full h-[1.5px] bg-gradient-to-r from-pink-500/0 via-pink-500/40 to-pink-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+          <div className="absolute top-0 left-0 w-full h-[1.5px] bg-gradient-to-r from-emerald-500/0 via-emerald-500/40 to-emerald-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
           <div className="flex justify-between items-start">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Estimated Cost</p>
               <h4 className="text-3xl font-extrabold text-white mt-1.5 tracking-tight">${stats.totalCreditsUsed.toFixed(2)}</h4>
             </div>
-            <div className="p-2 rounded-xl bg-pink-500/10 border border-pink-500/20 text-pink-400">
+            <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
               <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.214-.11a3.65 3.65 0 00.183-.37c.347-.836.347-1.765 0-2.602a3.673 3.673 0 00-.285-.542l-.112-.17a3.002 3.002 0 00-3.327-.584M21 18H3m14-9.3c0-2.6-2.1-4.7-4.7-4.7M10 3v4c0 1.1-.9 2-2 2H4" />
               </svg>
@@ -156,7 +156,7 @@ export default function OverviewTab({
             </div>
             <div className="flex gap-3 text-[10px] font-semibold uppercase tracking-wider">
               <span className="flex items-center gap-1.5 text-slate-400">
-                <span className="w-2 h-2 rounded bg-purple-500 shadow-[0_0_6px_rgba(168,85,247,0.5)]"></span>
+                <span className="w-2 h-2 rounded bg-cyan-500 shadow-[0_0_6px_rgba(6,182,212,0.5)]"></span>
                 Credits
               </span>
               <span className="flex items-center gap-1.5 text-slate-400">
@@ -179,7 +179,7 @@ export default function OverviewTab({
                       <div key={i} className="flex-1 flex flex-col items-center group relative h-full justify-end max-w-[45px]">
                         <div className="absolute bottom-full mb-2 bg-slate-900 border border-white/10 text-[9px] text-white px-2 py-1.5 rounded-lg shadow-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 flex flex-col gap-0.5 font-mono">
                           <span className="font-bold text-slate-300">{d.date}</span>
-                          <span className="text-purple-400">Spend: ${d.creditsUsed.toFixed(2)}</span>
+                          <span className="text-cyan-400">Spend: ${d.creditsUsed.toFixed(2)}</span>
                           <span className="text-blue-400 font-medium">Audits: {d.callsCount}</span>
                         </div>
 
@@ -192,7 +192,7 @@ export default function OverviewTab({
                           {/* Credits bar */}
                           <div
                             style={{ height: `${Math.max(creditPct, 4)}%` }}
-                            className="flex-1 bg-gradient-to-t from-purple-600 to-purple-400 rounded-t-sm transition-all duration-300 group-hover:brightness-125 group-hover:shadow-[0_0_8px_rgba(168,85,247,0.4)]"
+                            className="flex-1 bg-gradient-to-t from-cyan-600 to-cyan-400 rounded-t-sm transition-all duration-300 group-hover:brightness-125 group-hover:shadow-[0_0_8px_rgba(6,182,212,0.4)]"
                           ></div>
                         </div>
                       </div>
@@ -223,7 +223,7 @@ export default function OverviewTab({
         </div>
 
         {/* 5. Bento Item: Config Status & Quick Key */}
-        <div className="backdrop-blur-md bg-gradient-to-br from-purple-900/10 to-blue-900/5 border border-white/[0.06] p-6 rounded-2xl relative overflow-hidden flex flex-col justify-between group">
+        <div className="backdrop-blur-md bg-gradient-to-br from-cyan-900/10 to-blue-900/5 border border-white/[0.06] p-6 rounded-2xl relative overflow-hidden flex flex-col justify-between group">
           <div>
             <h3 className="text-sm font-bold text-white mb-1">Server Key Info</h3>
             <p className="text-[11px] text-slate-400 leading-normal">Operational status of the server fallback key credentials.</p>
@@ -235,7 +235,7 @@ export default function OverviewTab({
             </div>
             <div className="flex items-center justify-between text-xs py-1 border-b border-white/[0.04]">
               <span className="text-slate-400">Admin Secret:</span>
-              <span className="font-semibold text-purple-400">Configured</span>
+              <span className="font-semibold text-cyan-400">Configured</span>
             </div>
           </div>
           <button
@@ -276,7 +276,7 @@ export default function OverviewTab({
                     <tr key={i} className="border-b border-white/[0.03] hover:bg-white/[0.01] transition-colors">
                       <td className="py-3 px-4 font-mono text-slate-300">{user.userId}</td>
                       <td className="py-3 px-4 text-center font-medium text-slate-200">{user.callsCount}</td>
-                      <td className="py-3 px-4 text-right text-purple-400 font-bold">${user.creditsUsed.toFixed(2)}</td>
+                      <td className="py-3 px-4 text-right text-cyan-400 font-bold">${user.creditsUsed.toFixed(2)}</td>
                     </tr>
                   ))
                 ) : (

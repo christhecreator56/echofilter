@@ -1,23 +1,32 @@
-import { pipeline } from '@huggingface/transformers';
+import { pipeline, env } from '@huggingface/transformers';
 
-let extractorInstance: any = null;
-let extractorPromise: Promise<any> | null = null;
+// Cache the ONNX model in .next directory to prevent repeated downloads
+env.cacheDir = './.next/cache/transformers';
 
-async function getExtractor() {
+type ExtractorType = (
+  text: string | string[],
+  options?: { pooling?: 'mean' | 'none'; normalize?: boolean }
+) => Promise<{ data: number[] | Float32Array }>;
+
+let extractorInstance: ExtractorType | null = null;
+let extractorPromise: Promise<ExtractorType> | null = null;
+
+async function getExtractor(): Promise<ExtractorType> {
   if (extractorInstance) {
     return extractorInstance;
   }
   if (!extractorPromise) {
     // Force CPU execution and single-thread if needed to run stably on serverless
     extractorPromise = pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       progress_callback: (data: any) => {
         if (data.status === 'downloading') {
           console.log(`Downloading embedding model: ${data.file} - ${Math.round(data.progress || 0)}%`);
         }
       }
     }).then((instance) => {
-      extractorInstance = instance;
-      return instance;
+      extractorInstance = instance as unknown as ExtractorType;
+      return extractorInstance;
     }).catch((err) => {
       extractorPromise = null;
       throw err;

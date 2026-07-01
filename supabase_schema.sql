@@ -9,9 +9,13 @@ CREATE TABLE IF NOT EXISTS video_analyses (
     confidence_score DOUBLE PRECISION NOT NULL,
     key_timestamps JSONB NOT NULL DEFAULT '[]'::jsonb,
     verdict TEXT NOT NULL,
+    verdict_reason TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     PRIMARY KEY (video_id, search_query)
 );
+
+-- Migration support to add verdict_reason to existing databases
+ALTER TABLE video_analyses ADD COLUMN IF NOT EXISTS verdict_reason TEXT;
 
 -- Index for querying by video_id
 CREATE INDEX IF NOT EXISTS idx_video_analyses_video_id ON video_analyses(video_id);
@@ -43,4 +47,45 @@ CREATE TABLE IF NOT EXISTS usage_logs (
 
 -- Index for searching by user_id
 CREATE INDEX IF NOT EXISTS idx_usage_logs_user_id ON usage_logs(user_id);
+
+-- Index for chronological queries/sorting
+CREATE INDEX IF NOT EXISTS idx_usage_logs_created_at ON usage_logs(created_at);
+
+-- Function to aggregate dashboard telemetry stats server-side
+CREATE OR REPLACE FUNCTION get_dashboard_stats()
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  result JSONB;
+BEGIN
+  SELECT jsonb_build_object(
+    'tableExists', true,
+    'totalUsers', COALESCE((SELECT count(DISTINCT user_id)::int FROM usage_logs), 0),
+    'totalCalls', COALESCE((SELECT count(*)::int FROM usage_logs), 0),
+    'totalCreditsUsed', COALESCE((SELECT round(sum(credits_consumed)::numeric, 2)::float FROM usage_logs), 0.0),
+    'topUsers', COALESCE((
+      SELECT jsonb_agg(t) FROM (
+        SELECT user_id AS "userId", count(*)::int AS "callsCount", round(sum(credits_consumed)::numeric, 2)::float AS "creditsUsed"
+        FROM usage_logs
+        GROUP BY user_id
+        ORDER BY "creditsUsed" DESC, "callsCount" DESC
+        LIMIT 10
+      ) t
+    ), '[]'::jsonb),
+    'dailyStats', COALESCE((
+      SELECT jsonb_agg(d) FROM (
+        SELECT created_at::date::text AS "date", count(*)::int AS "callsCount", round(sum(credits_consumed)::numeric, 2)::float AS "creditsUsed"
+        FROM usage_logs
+        GROUP BY created_at::date
+        ORDER BY "date" ASC
+      ) d
+    ), '[]'::jsonb)
+  ) INTO result;
+  
+  RETURN result;
+END;
+$$;
+
 

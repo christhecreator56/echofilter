@@ -23,11 +23,8 @@ export interface VideoDensityReport {
     relevanceReason: string;
   }[];
   verdict: 'HIGH_DENSITY' | 'SURFACE_LEVEL' | 'CLICKBAIT_WASTE';
+  verdictReason?: string;
 }
-
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY || 'placeholder-key',
-});
 
 /**
  * Chunks raw transcript segments into semantic/temporal windows of approximately 60 seconds
@@ -141,6 +138,7 @@ export async function analyzeTranscript(
         metrics: { infoDensityScore: 0.0, fillerRatio: 1.0, confidenceScore: 0.5 },
         keyTimestamps: [],
         verdict: 'CLICKBAIT_WASTE',
+        verdictReason: `No content matched the search query: "${searchQuery}" (alignment score is below threshold).`,
       },
       tokensUsed: 0,
     };
@@ -176,6 +174,7 @@ export async function analyzeTranscript(
           relevanceReason: `Mock justification: highly relevant content matched query (sim: ${m.similarity.toFixed(2)})`,
         })),
         verdict,
+        verdictReason: `Evaluation based on vector query-alignment (simulation score: ${(avgSim * 100).toFixed(0)}%). Configure a Groq API Key for detailed transcripts audit.`,
       },
       tokensUsed: 0,
     };
@@ -185,11 +184,16 @@ export async function analyzeTranscript(
   const activeGroq = new Groq({ apiKey: targetApiKey });
 
   // Helper function to call Groq with retry on 429 rate limits
-  const callGroqWithRetry = async (params: any, retries = 3, delay = 2000): Promise<any> => {
+  const callGroqWithRetry = async (
+    params: Parameters<typeof activeGroq.chat.completions.create>[0],
+    retries = 3,
+    delay = 2000
+  ): Promise<Awaited<ReturnType<typeof activeGroq.chat.completions.create>>> => {
     try {
       return await activeGroq.chat.completions.create(params);
-    } catch (err: any) {
-      if (err?.status === 429 && retries > 0) {
+    } catch (err: unknown) {
+      const errorVal = err as { status?: number; message?: string };
+      if (errorVal?.status === 429 && retries > 0) {
         console.warn(`[Groq Rate Limit] 429 hit. Retrying in ${delay}ms... (${retries} attempts remaining)`);
         await new Promise((resolve) => setTimeout(resolve, delay));
         return callGroqWithRetry(params, retries - 1, delay * 1.5);
@@ -224,18 +228,21 @@ JSON Schema:
         temperature: 0.1,
       });
 
-      const content = chatCompletion.choices[0]?.message?.content || '{}';
-      const parsed: LLMChunkGrade = JSON.parse(content);
-      const tokens = chatCompletion.usage?.total_tokens || 0;
-      
-      return {
-        chunk: match.chunk,
-        similarity: match.similarity,
-        technicalScore: typeof parsed.technicalScore === 'number' ? parsed.technicalScore : 0,
-        fillerDetected: typeof parsed.fillerDetected === 'number' ? parsed.fillerDetected : 1,
-        justification: parsed.justification || 'Analyzed segment.',
-        tokensUsed: tokens,
-      };
+      if ('choices' in chatCompletion) {
+        const content = chatCompletion.choices[0]?.message?.content || '{}';
+        const parsed: LLMChunkGrade = JSON.parse(content);
+        const tokens = chatCompletion.usage?.total_tokens || 0;
+        
+        return {
+          chunk: match.chunk,
+          similarity: match.similarity,
+          technicalScore: typeof parsed.technicalScore === 'number' ? parsed.technicalScore : 0,
+          fillerDetected: typeof parsed.fillerDetected === 'number' ? parsed.fillerDetected : 1,
+          justification: parsed.justification || 'Analyzed segment.',
+          tokensUsed: tokens,
+        };
+      }
+      throw new Error('Unexpected stream response from Groq');
     } catch (err) {
       console.error(`Error grading chunk ${match.chunk.id} with Groq:`, err);
       // Fallback grade
@@ -276,6 +283,16 @@ JSON Schema:
     verdict = 'SURFACE_LEVEL';
   }
 
+  // Compile the justification reasons from the audited chunks
+  let verdictReason = 'Content density and technical depth are adequate.';
+  if (verdict === 'CLICKBAIT_WASTE') {
+    const explanations = gradedChunks.map(g => g.justification).join('; ');
+    verdictReason = `Flagged as fluff: ${explanations}`;
+  } else if (verdict === 'SURFACE_LEVEL') {
+    const explanations = gradedChunks.map(g => g.justification).join('; ');
+    verdictReason = `Surface level content: ${explanations}`;
+  }
+
   return {
     report: {
       videoId,
@@ -286,6 +303,7 @@ JSON Schema:
       },
       keyTimestamps,
       verdict,
+      verdictReason,
     },
     tokensUsed: totalTokensUsed,
   };

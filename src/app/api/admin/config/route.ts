@@ -46,10 +46,11 @@ export async function POST(req: NextRequest) {
     process.env.GROQ_API_KEY = groqApiKey.trim();
 
     return Response.json({ success: true, message: 'Groq API Key updated successfully.' });
-  } catch (error: any) {
-    console.error('Error updating config:', error);
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('Error updating config:', err);
     return Response.json(
-      { error: error.message || 'Failed to update configuration.' },
+      { error: err.message || 'Failed to update configuration.' },
       { status: 500 }
     );
   }

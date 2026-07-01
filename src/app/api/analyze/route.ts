@@ -38,6 +38,23 @@ export async function POST(req: NextRequest) {
     const normalizedQuery = searchQuery.trim().toLowerCase();
     const results: Record<string, VideoDensityReport & { communityConfirmations: number }> = {};
 
+    // Fetch community confirmation counts for all videos in a single query to avoid N roundtrips
+    const communityTagCounts: Record<string, number> = {};
+    try {
+      const { data: tagData, error: tagError } = await supabase
+        .from('community_tags')
+        .select('video_id')
+        .in('video_id', videoIds);
+
+      if (!tagError && tagData) {
+        for (const row of tagData) {
+          communityTagCounts[row.video_id] = (communityTagCounts[row.video_id] || 0) + 1;
+        }
+      }
+    } catch (tagErr) {
+      console.warn('Failed to pre-fetch community tag counts:', tagErr);
+    }
+
     // Process each video in parallel
     const analysisPromises = videoIds.map(async (videoId) => {
       const cacheKey = `echofilter:cache:${videoId}:${normalizedQuery}`;
@@ -76,6 +93,7 @@ export async function POST(req: NextRequest) {
                 ? JSON.parse(data.key_timestamps) 
                 : data.key_timestamps,
               verdict: data.verdict,
+              verdictReason: data.verdict_reason,
             };
 
             // Save to Redis cache
@@ -94,7 +112,28 @@ export async function POST(req: NextRequest) {
       if (!report) {
         try {
           console.log(`Cache miss. Processing video: ${videoId}`);
-          const segments = await fetchYouTubeTranscript(videoId);
+          
+          let segments = null;
+          const transcriptCacheKey = `echofilter:transcript:${videoId}`;
+          try {
+            const cachedTranscript = await redis.get<string>(transcriptCacheKey);
+            if (cachedTranscript) {
+              segments = typeof cachedTranscript === 'string' ? JSON.parse(cachedTranscript) : cachedTranscript;
+              console.log(`Transcript cache hit for video: ${videoId}`);
+            }
+          } catch (cacheErr) {
+            console.warn(`Failed to fetch cached transcript for ${videoId}:`, cacheErr);
+          }
+
+          if (!segments) {
+            segments = await fetchYouTubeTranscript(videoId);
+            try {
+              await redis.set(transcriptCacheKey, JSON.stringify(segments), { ex: 86400 * 30 }); // Cache for 30 days
+            } catch (cacheErr) {
+              console.warn(`Failed to cache transcript for ${videoId} in Redis:`, cacheErr);
+            }
+          }
+
           const chunks = chunkTranscript(segments, videoId);
           const result = await analyzeTranscript(videoId, searchQuery, chunks, userApiKey);
           report = result.report;
@@ -110,6 +149,7 @@ export async function POST(req: NextRequest) {
               confidence_score: report.metrics.confidenceScore,
               key_timestamps: report.keyTimestamps,
               verdict: report.verdict,
+              verdict_reason: report.verdictReason,
             });
           } catch (dbUpsertErr) {
             console.error(`Failed to upsert to Supabase for ${videoId}:`, dbUpsertErr);
@@ -137,32 +177,29 @@ export async function POST(req: NextRequest) {
           } catch (logErr) {
             console.error(`Failed to log usage to Supabase for ${videoId}:`, logErr);
           }
-        } catch (err) {
+        } catch (err: unknown) {
           console.error(`Pipeline failure for video ${videoId}:`, err);
+          const errMessage = err instanceof Error ? err.message : 'Unknown pipeline error';
+          let reason = 'Analysis failed due to an internal pipeline error.';
+          if (errMessage.includes('No transcript segments') || errMessage.includes('Failed to extract any text')) {
+            reason = 'Transcripts/captions are unavailable for this video.';
+          } else if (errMessage.includes('rate-limit') || errMessage.includes('429')) {
+            reason = 'Groq LLM rate-limit hit. Please try again shortly.';
+          }
+
           // Return a failure report instead of throwing to allow other videos to succeed
           report = {
             videoId,
             metrics: { infoDensityScore: 0, fillerRatio: 1, confidenceScore: 0 },
             keyTimestamps: [],
             verdict: 'CLICKBAIT_WASTE',
+            verdictReason: `Analysis Unavailable: ${reason}`,
           };
         }
       }
 
-      // 4. Fetch community confirmation counts
-      let communityConfirmations = 0;
-      try {
-        const { count, error } = await supabase
-          .from('community_tags')
-          .select('*', { count: 'exact', head: true })
-          .eq('video_id', videoId);
-        
-        if (!error && count !== null) {
-          communityConfirmations = count;
-        }
-      } catch (tagErr) {
-        console.warn(`Failed to fetch community confirmations count for ${videoId}:`, tagErr);
-      }
+      // 4. Get community confirmation count from pre-fetched map
+      const communityConfirmations = communityTagCounts[videoId] || 0;
 
       results[videoId] = {
         ...report,
