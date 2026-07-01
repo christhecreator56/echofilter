@@ -181,8 +181,8 @@ export async function POST(req: NextRequest) {
           console.error(`Pipeline failure for video ${videoId}:`, err);
           const errMessage = err instanceof Error ? err.message : 'Unknown pipeline error';
           let reason = 'Analysis failed due to an internal pipeline error.';
-          if (errMessage.includes('No transcript segments') || errMessage.includes('Failed to extract any text')) {
-            reason = 'Transcripts/captions are unavailable for this video.';
+          if (errMessage.includes('No transcript segments') || errMessage.includes('Failed to extract any text') || errMessage.includes('transcript')) {
+            reason = "We can't fetch transcript issue.";
           } else if (errMessage.includes('rate-limit') || errMessage.includes('429')) {
             reason = 'Groq LLM rate-limit hit. Please try again shortly.';
           }

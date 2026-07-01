@@ -11,6 +11,8 @@ interface CredentialsTabProps {
   configSuccess: string | null;
   configError: string | null;
   handleUpdateConfig: (e: React.FormEvent) => void;
+  developerMode: boolean;
+  setDeveloperMode: (val: boolean) => void;
 }
 
 export default function CredentialsTab({
@@ -22,6 +24,8 @@ export default function CredentialsTab({
   configSuccess,
   configError,
   handleUpdateConfig,
+  developerMode,
+  setDeveloperMode,
 }: CredentialsTabProps) {
   return (
     <div className="max-w-2xl space-y-6 animate-fade-in">
@@ -111,6 +115,31 @@ export default function CredentialsTab({
         <p className="text-[11px] text-slate-400 leading-relaxed">
           To modify the dashboard access password itself, configure the <code className="text-slate-200 font-semibold font-mono bg-white/5 px-1 py-0.5 rounded">ADMIN_SECRET</code> key in your server environment configuration variables.
         </p>
+      </div>
+
+      {/* Developer Settings Card */}
+      <div className="backdrop-blur-md bg-white/[0.02] border border-white/[0.06] p-6 rounded-2xl relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-[2px] h-full bg-gradient-to-b from-cyan-500 to-emerald-500"></div>
+        
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-bold text-white font-sans">Developer Mode Options</h3>
+            <p className="text-xs text-slate-400 mt-1">Enable access to running database telemetry logs and raw log download tools.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setDeveloperMode(!developerMode)}
+            className={`w-12 h-6 flex items-center rounded-full p-1 cursor-pointer transition-all duration-300 ${
+              developerMode ? 'bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.4)]' : 'bg-white/10'
+            }`}
+          >
+            <div
+              className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-all duration-300 ${
+                developerMode ? 'translate-x-6' : 'translate-x-0'
+              }`}
+            ></div>
+          </button>
+        </div>
       </div>
 
     </div>

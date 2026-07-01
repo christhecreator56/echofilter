@@ -29,6 +29,17 @@ interface DashboardStats {
   dailyStats: DailyStat[];
 }
 
+interface UsageLog {
+  id: number;
+  userId: string;
+  videoId: string;
+  searchQuery: string;
+  tokensUsed: number;
+  creditsConsumed: number;
+  usingCustomKey: boolean;
+  createdAt: string;
+}
+
 export default function AdminDashboard() {
   const [adminSecret, setAdminSecret] = useState<string>('');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -39,6 +50,10 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [statsError, setStatsError] = useState<string | null>(null);
+
+  const [developerMode, setDeveloperMode] = useState<boolean>(false);
+  const [logsData, setLogsData] = useState<UsageLog[]>([]);
+  const [logsLoading, setLogsLoading] = useState<boolean>(false);
 
   const [groqKeyInput, setGroqKeyInput] = useState<string>('');
   const [configLoading, setConfigLoading] = useState<boolean>(false);
@@ -78,6 +93,37 @@ export default function AdminDashboard() {
     }
   }, [adminSecret]);
 
+  const fetchLogs = useCallback(async () => {
+    setLogsLoading(true);
+    try {
+      const res = await fetch('/api/admin/logs', {
+        headers: {
+          'x-admin-secret': adminSecret,
+        },
+      });
+      if (!res.ok) {
+        throw new Error('Failed to fetch developer logs.');
+      }
+      const data = await res.json();
+      setLogsData(data);
+    } catch (err: unknown) {
+      console.error(err);
+    } finally {
+      setLogsLoading(false);
+    }
+  }, [adminSecret]);
+
+  const downloadLogs = useCallback(() => {
+    if (logsData.length === 0) return;
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(logsData, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href",     dataStr);
+    downloadAnchor.setAttribute("download", `echofilter_running_logs_${new Date().toISOString().split('T')[0]}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  }, [logsData]);
+
   // Sync token from sessionStorage on mount
   useEffect(() => {
     const savedSecret = sessionStorage.getItem('echofilter_admin_secret');
@@ -99,6 +145,16 @@ export default function AdminDashboard() {
       return () => clearTimeout(timer);
     }
   }, [isAuthenticated, adminSecret, stats, fetchStats]);
+
+  // Fetch developer logs when developer mode is active and we don't have them yet
+  useEffect(() => {
+    if (developerMode && isAuthenticated && adminSecret) {
+      const timer = setTimeout(() => {
+        fetchLogs();
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [developerMode, isAuthenticated, adminSecret, fetchLogs]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -332,6 +388,10 @@ $$;`;
                 copying={copying}
                 copySqlToClipboard={copySqlToClipboard}
                 setActiveTab={setActiveTab}
+                developerMode={developerMode}
+                logsData={logsData}
+                logsLoading={logsLoading}
+                downloadLogs={downloadLogs}
               />
             ) : (
               <CredentialsTab
@@ -343,6 +403,8 @@ $$;`;
                 configSuccess={configSuccess}
                 configError={configError}
                 handleUpdateConfig={handleUpdateConfig}
+                developerMode={developerMode}
+                setDeveloperMode={setDeveloperMode}
               />
             )
           ) : (

@@ -25,6 +25,17 @@ interface DashboardStats {
   dailyStats: DailyStat[];
 }
 
+interface UsageLog {
+  id: number;
+  userId: string;
+  videoId: string;
+  searchQuery: string;
+  tokensUsed: number;
+  creditsConsumed: number;
+  usingCustomKey: boolean;
+  createdAt: string;
+}
+
 interface OverviewTabProps {
   stats: DashboardStats;
   maxCredits: number;
@@ -33,6 +44,10 @@ interface OverviewTabProps {
   copying: boolean;
   copySqlToClipboard: () => void;
   setActiveTab: (tab: 'overview' | 'settings') => void;
+  developerMode: boolean;
+  logsData: UsageLog[];
+  logsLoading: boolean;
+  downloadLogs: () => void;
 }
 
 export default function OverviewTab({
@@ -43,6 +58,10 @@ export default function OverviewTab({
   copying,
   copySqlToClipboard,
   setActiveTab,
+  developerMode,
+  logsData,
+  logsLoading,
+  downloadLogs,
 }: OverviewTabProps) {
   return (
     <div className="space-y-8 animate-fade-in">
@@ -290,8 +309,80 @@ export default function OverviewTab({
             </table>
           </div>
         </div>
-
       </div>
+
+      {/* 7. Developer Options: Telemetry Logs Console */}
+      {developerMode && (
+        <div className="backdrop-blur-md bg-white/[0.01] border border-cyan-500/10 p-6 rounded-2xl relative overflow-hidden animate-fade-in space-y-4">
+          <div className="absolute top-0 left-0 w-full h-[1.5px] bg-gradient-to-r from-cyan-500/0 via-cyan-500/30 to-cyan-500/0"></div>
+          
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+            <div>
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_#22d3ee]"></span>
+                Running Telemetry Logs Console
+              </h3>
+              <p className="text-[11px] text-slate-400">Real-time database audit transactions and token diagnostics</p>
+            </div>
+            
+            <button
+              onClick={downloadLogs}
+              disabled={logsLoading || logsData.length === 0}
+              className="px-4 py-2 bg-cyan-500/10 border border-cyan-500/25 hover:bg-cyan-500/20 text-cyan-400 font-semibold text-xs rounded-xl transition-all cursor-pointer disabled:opacity-40 flex items-center gap-2"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+              Download Telemetry Logs (.json)
+            </button>
+          </div>
+
+          <div className="w-full bg-[#040406] border border-white/[0.04] rounded-xl overflow-hidden font-mono text-[10px] text-slate-300">
+            {logsLoading ? (
+              <div className="py-12 flex flex-col items-center justify-center gap-2">
+                <div className="w-6 h-6 border-2 border-cyan-500/20 border-t-cyan-400 rounded-full animate-spin"></div>
+                <span className="text-slate-500">Querying active logs directory...</span>
+              </div>
+            ) : logsData.length > 0 ? (
+              <div className="overflow-x-auto max-h-72 overflow-y-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-white/[0.02] border-b border-white/[0.06] text-slate-500 uppercase tracking-wider font-bold">
+                      <th className="py-2 px-4">Log ID</th>
+                      <th className="py-2 px-4">Timestamp (UTC)</th>
+                      <th className="py-2 px-4">User ID</th>
+                      <th className="py-2 px-4">Video ID</th>
+                      <th className="py-2 px-4">Search Query</th>
+                      <th className="py-2 px-4 text-center">Tokens</th>
+                      <th className="py-2 px-4 text-right">Cost</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/[0.02]">
+                    {logsData.map((log) => (
+                      <tr key={log.id} className="hover:bg-white/[0.01] transition-colors">
+                        <td className="py-2 px-4 text-slate-500">#{log.id}</td>
+                        <td className="py-2 px-4 text-slate-400">
+                          {log.createdAt ? new Date(log.createdAt).toISOString().replace('T', ' ').slice(0, 19) : ''}
+                        </td>
+                        <td className="py-2 px-4 text-slate-300 truncate max-w-[120px]">{log.userId}</td>
+                        <td className="py-2 px-4 text-cyan-400 font-medium">{log.videoId}</td>
+                        <td className="py-2 px-4 text-slate-300 italic">&quot;{log.searchQuery}&quot;</td>
+                        <td className="py-2 px-4 text-center">{log.tokensUsed}</td>
+                        <td className="py-2 px-4 text-right text-emerald-400 font-bold">${log.creditsConsumed.toFixed(4)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="py-12 text-center text-slate-500">
+                No developer logs found in current audit registry.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
